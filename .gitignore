@@ -1,0 +1,14 @@
+# временные архивы
+*.tgz
+*.tar.gz
+
+# секреты и локальные настройки
+.env
+**/.env
+**/secrets/
+
+# ОС и редакторы
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

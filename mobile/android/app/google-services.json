@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1035295668337",
+    "project_id": "krimfish-cf3af",
+    "storage_bucket": "krimfish-cf3af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1035295668337:android:2afe51762f219f24b103d0",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJF5bz7o6FOmQtAc3Grd-FsCJoWipTH64"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

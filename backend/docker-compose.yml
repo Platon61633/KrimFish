@@ -1,0 +1,98 @@
+name: krimfish
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-krimfish}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-krimfish}
+      POSTGRES_DB: ${POSTGRES_DB:-krimfish}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Только с этого компьютера: чтобы подключиться к базе из DBeaver, psql и т. п.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Для локальной разработки по умолчанию development. Для боевого запуска задайте
+      # NODE_ENV=production и свой JWT_SECRET (минимум 32 символа) в файле .env.
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3000"
+      DATABASE_URL: postgres://${POSTGRES_USER:-krimfish}:${POSTGRES_PASSWORD:-krimfish}@db:5432/${POSTGRES_DB:-krimfish}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
+      ADMIN_PHONES: ${ADMIN_PHONES:-}
+      SMS_MODE: ${SMS_MODE:-console}
+      SMS_FIXED_CODE: ${SMS_FIXED_CODE-123456}
+      SEED_DEMO: ${SEED_DEMO:-true}
+      APP_TZ: ${APP_TZ:-Europe/Moscow}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      DELIVERY_KOP: ${DELIVERY_KOP:-39000}
+      SLOT_DAYS: ${SLOT_DAYS:-2}
+      SLOT_LEAD_HOURS: ${SLOT_LEAD_HOURS:-1}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-http://localhost:9000}
+      S3_BUCKET: ${S3_BUCKET:-krimfish}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-krimfish}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-krimfish-secret}
+      S3_REGION: us-east-1
+      FIREBASE_CREDENTIALS_FILE: /run/secrets/firebase.json
+    volumes:
+      # Сюда кладётся secrets/firebase.json (ключ сервисного аккаунта Firebase).
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  # Хранилище фото, совместимое с S3. Консоль: http://localhost:9001
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-krimfish}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-krimfish-secret}
+      MINIO_REGION: us-east-1
+    volumes:
+      - miniodata:/data
+    ports:
+      - "${S3_PORT:-9000}:9000"
+      - "127.0.0.1:9001:9001"
+
+  # Один раз создаёт бакет и открывает фото на чтение всем (загружать можно только по ссылке от API).
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do sleep 1; done;
+      mc mb --ignore-existing local/${S3_BUCKET:-krimfish};
+      mc anonymous set download local/${S3_BUCKET:-krimfish};
+      echo bucket ready"
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-krimfish}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-krimfish-secret}
+
+  # Веб-интерфейс для просмотра базы: docker compose --profile tools up
+  adminer:
+    image: adminer:latest
+    profiles: ["tools"]
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  pgdata:
+  miniodata:
