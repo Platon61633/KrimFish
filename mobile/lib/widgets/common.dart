@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../core/theme.dart';
 import '../data/models.dart';
@@ -76,19 +77,19 @@ class Pill extends StatelessWidget {
 }
 
 Color orderStatusColor(OrderStatus s) => switch (s) {
-      OrderStatus.newOrder => AppColors.newBg,
-      OrderStatus.preparing => AppColors.warnBg,
-      OrderStatus.onTheWay => AppColors.mist,
-      OrderStatus.delivered => AppColors.okBg,
-      OrderStatus.canceled => AppColors.line,
-    };
+  OrderStatus.newOrder => AppColors.newBg,
+  OrderStatus.preparing => AppColors.warnBg,
+  OrderStatus.onTheWay => AppColors.mist,
+  OrderStatus.delivered => AppColors.okBg,
+  OrderStatus.canceled => AppColors.line,
+};
 
 Color productStatusColor(ProductStatus s) => switch (s) {
-      ProductStatus.onSale => AppColors.okBg,
-      ProductStatus.low => AppColors.warnBg,
-      ProductStatus.outOfStock => AppColors.newBg,
-      ProductStatus.hidden => AppColors.line,
-    };
+  ProductStatus.onSale => AppColors.okBg,
+  ProductStatus.low => AppColors.warnBg,
+  ProductStatus.outOfStock => AppColors.newBg,
+  ProductStatus.hidden => AppColors.line,
+};
 
 class OrderStatusPill extends StatelessWidget {
   const OrderStatusPill(this.status, {super.key});
@@ -107,12 +108,20 @@ class ProductImage extends StatelessWidget {
     this.height = 96,
     this.width = double.infinity,
     this.radius = 12,
+    this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
   });
 
   final Product product;
   final double height;
   final double width;
   final double radius;
+
+  /// cover — заполнить рамку с обрезкой (в списках); contain — показать фото целиком.
+  final BoxFit fit;
+
+  /// Положение фото внутри рамки (например, bottomCenter — прижать к низу).
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +143,16 @@ class ProductImage extends StatelessWidget {
         width: width,
         child: url == null
             ? fallback
-            : Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => fallback,
+            : ColoredBox(
+                color: AppColors.mist,
+                child: Image.network(
+                  url,
+                  fit: fit,
+                  alignment: alignment,
+                  width: width,
+                  height: height,
+                  errorBuilder: (_, _, _) => fallback,
+                ),
               ),
       ),
     );
@@ -309,4 +324,20 @@ void showSnack(BuildContext context, String text) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(text)));
+}
+
+/// Логотип KrimFish (lib/assets/logo.svg).
+class AppLogo extends StatelessWidget {
+  const AppLogo({super.key, this.size = 96});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      'lib/assets/logo.svg',
+      width: size,
+      height: size,
+      semanticsLabel: 'KrimFish',
+    );
+  }
 }

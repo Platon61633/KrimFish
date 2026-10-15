@@ -47,9 +47,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _stock = TextEditingController(
       text: p == null
           ? ''
-          : (p.unit == Unit.kg
-              ? numberToInput(p.stock / 1000)
-              : '${p.stock}'),
+          : (p.unit == Unit.kg ? numberToInput(p.stock / 1000) : '${p.stock}'),
     );
     _desc = TextEditingController(text: p?.description ?? '');
     _unit = p?.unit ?? Unit.kg;
@@ -93,8 +91,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       final type = name.endsWith('.png')
           ? 'image/png'
           : name.endsWith('.webp')
-              ? 'image/webp'
-              : 'image/jpeg';
+          ? 'image/webp'
+          : 'image/jpeg';
       final api = ref.read(apiProvider);
       final ticket = await api.requestUpload(type);
       await api.putFile(ticket, bytes);
@@ -179,7 +177,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(content: Text(_isNew ? 'Товар добавлен' : 'Изменения сохранены')),
+        SnackBar(
+          content: Text(_isNew ? 'Товар добавлен' : 'Изменения сохранены'),
+        ),
       );
   }
 
@@ -222,24 +222,24 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         child: _uploading
                             ? const CircularProgressIndicator()
                             : _imageUrl == null
-                                ? const Text(
-                                    'Добавить фото',
-                                    style: TextStyle(color: AppColors.teal),
-                                  )
-                                : Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black54,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'Заменить фото',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  ),
+                            ? const Text(
+                                'Добавить фото',
+                                style: TextStyle(color: AppColors.teal),
+                              )
+                            : Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Заменить фото',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
                       ),
                     ],
                   ),
@@ -289,8 +289,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 Expanded(
                   child: TextFormField(
                     controller: _price,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: InputDecoration(labelText: _unit.priceLabel),
                     validator: (v) {
                       final k = parseKop(v ?? '');
@@ -338,7 +339,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                  ),
                   onPressed: (_saving || _uploading) ? null : _delete,
                   icon: const Icon(Icons.delete_outline),
                   label: const Text('Удалить товар'),

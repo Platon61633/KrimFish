@@ -16,7 +16,9 @@ final prefsProvider = Provider<SharedPreferences>(
   (ref) => throw UnimplementedError('prefsProvider не задан'),
 );
 
-final apiProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(prefsProvider)));
+final apiProvider = Provider<ApiClient>(
+  (ref) => ApiClient(ref.watch(prefsProvider)),
+);
 
 // ---------------------------------------------------------------- вход
 
@@ -48,6 +50,14 @@ class AuthNotifier extends Notifier<AuthState> {
     } on ApiException catch (e) {
       state = e.status == 0 ? AuthState(error: e.message) : const AuthState();
     }
+  }
+
+  /// Тихо обновляет профиль (бонусы, имя) без экрана загрузки.
+  Future<void> refreshUser() async {
+    if (state.user == null) return;
+    try {
+      state = AuthState(user: await ref.read(apiProvider).me());
+    } catch (_) {}
   }
 
   /// Шаг 1: отправить код. В режиме разработки сервер возвращает код в ответе.
@@ -86,13 +96,18 @@ class NameSkipNotifier extends Notifier<bool> {
   void reset() => state = false;
 }
 
-final nameSkipProvider = NotifierProvider<NameSkipNotifier, bool>(NameSkipNotifier.new);
+final nameSkipProvider = NotifierProvider<NameSkipNotifier, bool>(
+  NameSkipNotifier.new,
+);
 
-final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(
+  AuthNotifier.new,
+);
 
 /// Меняется только при входе/выходе — по нему данные перезагружаются.
-final sessionUserProvider =
-    Provider<String?>((ref) => ref.watch(authProvider.select((a) => a.user?.id)));
+final sessionUserProvider = Provider<String?>(
+  (ref) => ref.watch(authProvider.select((a) => a.user?.id)),
+);
 
 final roleProvider = Provider<AppRole?>((ref) {
   final user = ref.watch(authProvider.select((a) => a.user));
@@ -159,8 +174,9 @@ class CatalogNotifier extends Notifier<List<Product>> {
   }
 }
 
-final catalogProvider =
-    NotifierProvider<CatalogNotifier, List<Product>>(CatalogNotifier.new);
+final catalogProvider = NotifierProvider<CatalogNotifier, List<Product>>(
+  CatalogNotifier.new,
+);
 
 class ServerCategoriesNotifier extends Notifier<List<String>> {
   @override
@@ -180,7 +196,8 @@ class ServerCategoriesNotifier extends Notifier<List<String>> {
 
 final serverCategoriesProvider =
     NotifierProvider<ServerCategoriesNotifier, List<String>>(
-        ServerCategoriesNotifier.new);
+      ServerCategoriesNotifier.new,
+    );
 
 final categoriesProvider = Provider<List<String>>((ref) {
   final all = <String>{
@@ -210,8 +227,9 @@ class SlotsNotifier extends Notifier<List<DeliverySlot>> {
   }
 }
 
-final slotsProvider =
-    NotifierProvider<SlotsNotifier, List<DeliverySlot>>(SlotsNotifier.new);
+final slotsProvider = NotifierProvider<SlotsNotifier, List<DeliverySlot>>(
+  SlotsNotifier.new,
+);
 
 // ---------------------------------------------------------------- корзина
 
@@ -220,12 +238,12 @@ class CartNotifier extends Notifier<List<CartLine>> {
   List<CartLine> build() => const [];
 
   void add(Product p, int qty) {
-    if (qty <= 0 || p.stock <= 0) return;
+    if (qty <= 0 || !p.canBuy) return;
     final i = state.indexWhere((l) => l.product.id == p.id);
     if (i == -1) {
-      state = [...state, CartLine(p, math.min(qty, p.stock))];
+      state = [...state, CartLine(p, math.min(qty, p.maxQty))];
     } else {
-      final q = math.min(state[i].qty + qty, p.stock);
+      final q = math.min(state[i].qty + qty, p.maxQty);
       state = [
         for (var j = 0; j < state.length; j++)
           j == i ? CartLine(p, q) : state[j],
@@ -241,8 +259,10 @@ class CartNotifier extends Notifier<List<CartLine>> {
         next.add(l);
         continue;
       }
-      final q = math.min(l.qty + delta, l.product.stock);
-      if (q > 0) next.add(CartLine(l.product, q));
+      final q = math.min(l.qty + delta, l.product.maxQty);
+      // Весовой товар: ниже 300 г позиция убирается из корзины.
+      final tooSmall = l.product.unit == Unit.kg && q < kMinWeight;
+      if (q > 0 && !tooSmall) next.add(CartLine(l.product, q));
     }
     state = next;
   }
@@ -250,8 +270,9 @@ class CartNotifier extends Notifier<List<CartLine>> {
   void clear() => state = const [];
 }
 
-final cartProvider =
-    NotifierProvider<CartNotifier, List<CartLine>>(CartNotifier.new);
+final cartProvider = NotifierProvider<CartNotifier, List<CartLine>>(
+  CartNotifier.new,
+);
 
 // ---------------------------------------------------------------- заказы
 
@@ -290,7 +311,9 @@ class OrdersNotifier extends Notifier<List<Order>> {
     String? promoCode,
   }) async {
     try {
-      final order = await ref.read(apiProvider).placeOrder(
+      final order = await ref
+          .read(apiProvider)
+          .placeOrder(
             lines: lines,
             slot: slot,
             addressLine: addressLine,
@@ -342,12 +365,34 @@ class OrdersNotifier extends Notifier<List<Order>> {
   }
 }
 
-final ordersProvider =
-    NotifierProvider<OrdersNotifier, List<Order>>(OrdersNotifier.new);
+final ordersProvider = NotifierProvider<OrdersNotifier, List<Order>>(
+  OrdersNotifier.new,
+);
 
 final myOrdersProvider = Provider<List<Order>>(
   (ref) => ref.watch(ordersProvider).where((o) => o.isMine).toList(),
 );
+
+/// Адрес доставки, который клиент указал сам (хранится на устройстве).
+class AddressNotifier extends Notifier<String?> {
+  String get _key => 'address:${ref.read(sessionUserProvider)}';
+
+  @override
+  String? build() {
+    final user = ref.watch(sessionUserProvider);
+    if (user == null) return null;
+    final v = ref.read(prefsProvider).getString('address:$user');
+    return (v == null || v.isEmpty) ? null : v;
+  }
+
+  Future<void> set(String address) async {
+    state = address;
+    await ref.read(prefsProvider).setString(_key, address);
+  }
+}
+
+final addressProvider =
+    NotifierProvider<AddressNotifier, String?>(AddressNotifier.new);
 
 final profileProvider = Provider<UserProfile>((ref) {
   final user = ref.watch(authProvider.select((a) => a.user));
@@ -355,8 +400,9 @@ final profileProvider = Provider<UserProfile>((ref) {
   return UserProfile(
     name: user?.name ?? '',
     phone: user?.phone ?? '',
-    // Адрес подставляется из последнего заказа.
-    address: orders.isEmpty ? '' : orders.first.addressLine,
+    // Свой адрес, а если не задан — из последнего заказа.
+    address: ref.watch(addressProvider) ??
+        (orders.isEmpty ? '' : orders.first.addressLine),
     bonus: user?.bonus ?? 0,
   );
 });

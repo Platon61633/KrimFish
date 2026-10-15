@@ -5,6 +5,7 @@ import '../core/theme.dart';
 import '../data/models.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import '../widgets/refresh.dart';
 import '../widgets/order_widgets.dart';
 import 'profile_button.dart';
 
@@ -58,69 +59,74 @@ class TrackScreen extends ConsumerWidget {
         title: Text(title),
         actions: pushed ? null : const [ProfileButton(), SizedBox(width: 12)],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        children: [
-          MutedText('Заказ №${o.number}'),
-          if (o.status.isActiveOrder) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Доставка: ${o.slot.label}',
-              style: const TextStyle(
-                color: AppColors.teal,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
+      body: PullToRefresh(
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          children: [
+            MutedText('Заказ №${o.number}'),
+            if (o.status.isActiveOrder) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Доставка: ${o.slot.label}',
+                style: const TextStyle(
+                  color: AppColors.teal,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            OrderTimeline(status: o.status),
+            const SizedBox(height: 12),
+            AppCard(
+              child: Row(
+                children: [
+                  const Icon(Icons.place_outlined, color: AppColors.teal),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(o.addressLine)),
+                ],
               ),
             ),
-          ],
-          const SizedBox(height: 16),
-          OrderTimeline(status: o.status),
-          const SizedBox(height: 12),
-          AppCard(
-            child: Row(
-              children: [
-                const Icon(Icons.place_outlined, color: AppColors.teal),
-                const SizedBox(width: 12),
-                Expanded(child: Text(o.addressLine)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          OrderSummaryCard(order: o),
-          if (o.status.isActiveOrder) ...[
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    style: lightButtonStyle(),
-                    onPressed: () => showSnack(
-                      context,
-                      'Звонок появится после подключения телефонии',
-                    ),
-                    child: const Text('Позвонить'),
-                  ),
-                ),
-                if (o.status.canCancel) ...[
-                  const SizedBox(width: 12),
+            OrderSummaryCard(order: o),
+            if (o.status.isActiveOrder) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
                   Expanded(
                     child: FilledButton(
-                      style: lightButtonStyle().copyWith(
-                        foregroundColor:
-                            const WidgetStatePropertyAll(AppColors.danger),
+                      style: lightButtonStyle(),
+                      onPressed: () => showSnack(
+                        context,
+                        'Звонок появится после подключения телефонии',
                       ),
-                      onPressed: () {
-                        ref.read(ordersProvider.notifier).cancel(o.number);
-                        showSnack(context, 'Заказ №${o.number} отменён');
-                      },
-                      child: const Text('Отменить'),
+                      child: const Text('Позвонить'),
                     ),
                   ),
+                  if (o.status.canCancel) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        style: lightButtonStyle().copyWith(
+                          foregroundColor: const WidgetStatePropertyAll(
+                            AppColors.danger,
+                          ),
+                        ),
+                        onPressed: () {
+                          ref.read(ordersProvider.notifier).cancel(o.number);
+                          showSnack(context, 'Заказ №${o.number} отменён');
+                        },
+                        child: const Text('Отменить'),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

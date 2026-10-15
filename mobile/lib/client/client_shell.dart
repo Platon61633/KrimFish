@@ -5,7 +5,6 @@ import '../state/providers.dart';
 import 'cart_screen.dart';
 import 'catalog_screen.dart';
 import 'home_screen.dart';
-import 'track_screen.dart';
 
 class ClientShell extends ConsumerWidget {
   const ClientShell({super.key});
@@ -18,12 +17,7 @@ class ClientShell extends ConsumerWidget {
     return Scaffold(
       body: IndexedStack(
         index: tab,
-        children: const [
-          HomeScreen(),
-          CatalogScreen(),
-          CartScreen(),
-          TrackScreen(),
-        ],
+        children: const [HomeScreen(), CatalogScreen(), CartScreen()],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
@@ -52,11 +46,6 @@ class ClientShell extends ConsumerWidget {
               child: const Icon(Icons.shopping_basket),
             ),
             label: 'Корзина',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.local_shipping_outlined),
-            selectedIcon: Icon(Icons.local_shipping),
-            label: 'Заказ',
           ),
         ],
       ),

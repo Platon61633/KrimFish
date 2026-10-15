@@ -5,6 +5,7 @@ import '../core/theme.dart';
 import '../data/models.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import '../widgets/refresh.dart';
 import 'admin_product_form_screen.dart';
 
 class AdminCatalogScreen extends ConsumerStatefulWidget {
@@ -60,47 +61,56 @@ class _AdminCatalogScreenState extends ConsumerState<AdminCatalogScreen> {
             ),
           ),
           Expanded(
-            child: products.isEmpty
-                ? const EmptyState(
-                    icon: Icons.inventory_2_outlined,
-                    title: 'Товары не найдены',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: products.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final p = products[i];
-                      return AppCard(
-                        padding: const EdgeInsets.all(12),
-                        onTap: () => _open(p),
-                        child: Row(
-                          children: [
-                            ProductImage(product: p, height: 56, width: 56),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
+            child: PullToRefresh(
+              child: products.isEmpty
+                  ? ScrollableEmpty(
+                      child: const EmptyState(
+                        icon: Icons.inventory_2_outlined,
+                        title: 'Товары не найдены',
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      itemCount: products.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) {
+                        final p = products[i];
+                        return AppCard(
+                          padding: const EdgeInsets.all(12),
+                          onTap: () => _open(p),
+                          child: Row(
+                            children: [
+                              ProductImage(product: p, height: 56, width: 56),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  ),
-                                  MutedText(
-                                    '${p.priceLabel} · остаток ${p.stockText}',
-                                  ),
-                                ],
+                                    MutedText(
+                                      '${p.priceLabel} · остаток ${p.stockText}',
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Pill(p.status.label, productStatusColor(p.status)),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                              const SizedBox(width: 8),
+                              Pill(
+                                p.status.label,
+                                productStatusColor(p.status),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

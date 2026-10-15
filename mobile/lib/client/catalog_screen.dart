@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import '../widgets/refresh.dart';
 import 'product_card.dart';
 import 'profile_button.dart';
 
@@ -19,9 +20,14 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final products =
-        ref.watch(catalogProvider).where((p) => p.isActive).toList();
-    final cats = ['Все', ...{for (final p in products) p.category}];
+    final products = ref
+        .watch(catalogProvider)
+        .where((p) => p.isActive)
+        .toList();
+    final cats = [
+      'Все',
+      ...{for (final p in products) p.category},
+    ];
     final sel = _cat < cats.length ? _cat : 0;
     final q = _query.trim().toLowerCase();
 
@@ -55,49 +61,56 @@ class _CatalogScreenState extends ConsumerState<CatalogScreen> {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: shown.isEmpty
-                ? const EmptyState(
-                    icon: Icons.search_off,
-                    title: 'Ничего не найдено',
-                    text: 'Попробуйте изменить запрос или категорию',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: shown.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) {
-                      final p = shown[i];
-                      return AppCard(
-                        padding: const EdgeInsets.all(12),
-                        onTap: () => openProduct(context, p),
-                        child: Row(
-                          children: [
-                            ProductImage(product: p, height: 64, width: 64),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    p.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
+            child: PullToRefresh(
+              child: shown.isEmpty
+                  ? ScrollableEmpty(
+                      child: const EmptyState(
+                        icon: Icons.search_off,
+                        title: 'Ничего не найдено',
+                        text: 'Попробуйте изменить запрос или категорию',
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      itemCount: shown.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) {
+                        final p = shown[i];
+                        return AppCard(
+                          padding: const EdgeInsets.all(12),
+                          onTap: () => openProduct(context, p),
+                          child: Row(
+                            children: [
+                              ProductImage(product: p, height: 64, width: 64),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
-                                  ),
-                                  MutedText(p.category),
-                                ],
+                                    MutedText(p.category),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text(
-                              p.inStock ? p.priceLabel : 'Нет в наличии',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                              Text(
+                                p.inStock ? p.priceLabel : 'Нет в наличии',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

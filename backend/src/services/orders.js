@@ -4,6 +4,7 @@ import { HttpError } from '../lib/errors.js';
 import { discountFor, formatRub, lineTotal } from '../lib/money.js';
 import { canTransition } from '../lib/status.js';
 import { nowInTz } from '../lib/time.js';
+import { isValidWeight } from '../lib/weight.js';
 import { loadSlot } from './slots.js';
 
 // ------------------------------------------------------------------ чтение
@@ -125,6 +126,9 @@ export async function computeQuote(db, input, { lock = false } = {}) {
   for (const [productId, qty] of wanted) {
     const p = byId.get(productId);
     if (!p || !p.isActive) throw new HttpError(400, 'Один из товаров больше недоступен');
+    if (p.unit === 'kg' && !isValidWeight(qty)) {
+      throw new HttpError(400, `${p.name}: вес должен быть кратен 100 г, минимум 300 г`);
+    }
     if (qty > p.stock) throw new HttpError(409, `Недостаточно на складе: ${p.name}`);
     lines.push({
       productId,

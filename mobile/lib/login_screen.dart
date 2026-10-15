@@ -45,7 +45,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() {
         _codeSent = true;
         _devCode = dev;
-        _code.text = dev ?? ''; // заглушка SMS: в режиме разработки код подставляется сам
+        _code.text =
+            dev ??
+            ''; // заглушка SMS: в режиме разработки код подставляется сам
       });
     } catch (e) {
       if (mounted) setState(() => _error = errorText(e));
@@ -89,8 +91,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.set_meal_outlined,
-                      size: 64, color: AppColors.teal),
+                  const Center(child: AppLogo(size: 96)),
                   const SizedBox(height: 16),
                   const Text(
                     'KrimFish',
@@ -132,7 +133,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (_devCode != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
-                        child: MutedText('Заглушка SMS (режим разработки): код $_devCode подставлен сам'),
+                        child: MutedText(
+                          'Заглушка SMS (режим разработки): код $_devCode подставлен сам',
+                        ),
                       ),
                   ],
                   if (_error != null)
@@ -159,10 +162,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       onPressed: _busy
                           ? null
                           : () => setState(() {
-                                _codeSent = false;
-                                _error = null;
-                                _devCode = null;
-                              }),
+                              _codeSent = false;
+                              _error = null;
+                              _devCode = null;
+                            }),
                       child: const Text('Изменить номер'),
                     ),
                 ],

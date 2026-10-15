@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'core/theme.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
 
@@ -45,8 +44,7 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.waving_hand_outlined,
-                      size: 56, color: AppColors.teal),
+                  const Center(child: AppLogo(size: 80)),
                   const SizedBox(height: 16),
                   const Text(
                     'Давайте познакомимся',

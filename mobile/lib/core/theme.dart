@@ -79,16 +79,16 @@ ThemeData buildTheme() {
 
 /// Кнопка второго плана (тёмная), как «Принять в работу» в админке.
 ButtonStyle darkButtonStyle({double height = 44}) => FilledButton.styleFrom(
-      backgroundColor: AppColors.ink,
-      foregroundColor: Colors.white,
-      minimumSize: Size(0, height),
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-    );
+  backgroundColor: AppColors.ink,
+  foregroundColor: Colors.white,
+  minimumSize: Size(0, height),
+  padding: const EdgeInsets.symmetric(horizontal: 18),
+);
 
 /// Светлая кнопка («Позвонить», «Отмена»).
 ButtonStyle lightButtonStyle({double height = 56}) => FilledButton.styleFrom(
-      backgroundColor: AppColors.line,
-      foregroundColor: AppColors.ink,
-      minimumSize: Size(0, height),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-    );
+  backgroundColor: AppColors.line,
+  foregroundColor: AppColors.ink,
+  minimumSize: Size(0, height),
+  padding: const EdgeInsets.symmetric(horizontal: 20),
+);

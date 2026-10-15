@@ -65,7 +65,8 @@ class RootGate extends ConsumerWidget {
       );
     }
     // Регистрация: у нового клиента ещё нет имени — спрашиваем один раз.
-    final needsName = auth.user != null &&
+    final needsName =
+        auth.user != null &&
         !auth.user!.isAdmin &&
         auth.user!.name.isEmpty &&
         !ref.watch(nameSkipProvider);

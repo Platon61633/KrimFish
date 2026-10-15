@@ -95,7 +95,7 @@ const productFields = {
   priceKop: z.number().int().positive().max(100_000_000),
   stock: z.number().int().min(0).max(1_000_000_000),
   description: z.string().trim().max(2000),
-  weightSteps: z.array(z.number().int().positive().max(100_000)).max(12),
+  weightSteps: z.array(z.number().int().min(300).max(100_000).multipleOf(100)).max(12),
   imageUrl: z.string().url().max(500).nullable(),
   isActive: z.boolean(),
 };

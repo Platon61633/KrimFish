@@ -11,9 +11,9 @@ class ProfileButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton.filled(
       tooltip: 'Профиль',
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const ProfileScreen()),
-      ),
+      onPressed: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const ProfileScreen())),
       icon: const Icon(Icons.person_outline),
       style: IconButton.styleFrom(
         backgroundColor: Colors.white,

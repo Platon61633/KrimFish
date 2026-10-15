@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../data/models.dart';
 import '../state/providers.dart';
 import '../widgets/common.dart';
+import '../widgets/refresh.dart';
 import 'admin_order_screen.dart';
 
 class AdminOrdersScreen extends ConsumerStatefulWidget {
@@ -26,7 +27,7 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
   ];
   static const _names = ['Все', 'Новые', 'Собираются', 'В пути', 'Доставлены'];
 
-  int _f = 1; // открываем на «Новые»
+  int _f = 0; // открываем на «Все»
 
   @override
   Widget build(BuildContext context) {
@@ -51,17 +52,23 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
           ),
           const SizedBox(height: 12),
           Expanded(
-            child: shown.isEmpty
-                ? const EmptyState(
-                    icon: Icons.inbox_outlined,
-                    title: 'Здесь пока пусто',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    itemCount: shown.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, i) => _OrderCard(order: shown[i]),
-                  ),
+            child: PullToRefresh(
+              child: shown.isEmpty
+                  ? ScrollableEmpty(
+                      child: const EmptyState(
+                        icon: Icons.inbox_outlined,
+                        title: 'Здесь пока пусто',
+                      ),
+                    )
+                  : ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
+
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      itemCount: shown.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, i) => _OrderCard(order: shown[i]),
+                    ),
+            ),
           ),
         ],
       ),

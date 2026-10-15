@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format.dart';
@@ -17,6 +18,39 @@ class ProductScreen extends ConsumerStatefulWidget {
 
 class _ProductScreenState extends ConsumerState<ProductScreen> {
   int? _qty;
+  final _weightCtrl = TextEditingController();
+  String? _weightError;
+
+  @override
+  void dispose() {
+    _weightCtrl.dispose();
+    super.dispose();
+  }
+
+  /// Ручной ввод веса в граммах: кратно 100 г, от 300 г, не больше остатка.
+  void _onWeightTyped(Product product, String text) {
+    if (text.isEmpty) {
+      setState(() {
+        _weightError = null;
+        _qty = null;
+      });
+      return;
+    }
+    final g = int.tryParse(text) ?? 0;
+    String? error;
+    if (g < kMinWeight) {
+      error = 'Минимум $kMinWeight г';
+    } else if (g % kWeightStep != 0) {
+      error = 'Вес должен быть кратен $kWeightStep г';
+    } else if (g > product.maxQty) {
+      error = 'В наличии только ${formatWeight(product.maxQty)}';
+    }
+    setState(() {
+      _weightError = error;
+      // Пока в поле ошибка, выбранный вес считается неподходящим (кнопка неактивна).
+      _qty = error == null ? g : -1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,9 +60,13 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
 
     // Выбранное количество должно оставаться допустимым при изменении остатка.
     var qty = _qty ?? product.defaultQty;
+    final typedInvalid = _weightError != null;
     if (product.unit == Unit.kg) {
-      final steps = product.selectableQty;
-      if (!steps.contains(qty)) qty = steps.isEmpty ? 0 : steps.first;
+      if (typedInvalid) {
+        qty = 0;
+      } else if (!product.isValidQty(qty)) {
+        qty = product.defaultQty;
+      }
     } else {
       if (qty > product.stock) qty = product.stock;
       if (qty < 1 && product.inStock) qty = 1;
@@ -39,7 +77,13 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
         children: [
           Stack(
             children: [
-              ProductImage(product: product, height: 300, radius: 0),
+              ProductImage(
+                product: product,
+                height: 300,
+                radius: 0,
+                fit: BoxFit.contain, // фото целиком, без обрезки
+                alignment: Alignment.bottomCenter, // прижать к низу рамки
+              ),
               Positioned(
                 top: MediaQuery.of(context).padding.top + 8,
                 left: 12,
@@ -74,17 +118,51 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   const SizedBox(height: 20),
                   if (!product.inStock)
                     const Pill('Нет в наличии', AppColors.newBg)
+                  else if (!product.canBuy)
+                    Pill(
+                      'Осталось меньше $kMinWeight г',
+                      AppColors.newBg,
+                    )
                   else if (product.unit == Unit.kg)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (final s in product.selectableQty)
-                          AppChoiceChip(
-                            label: formatWeight(s),
-                            selected: s == qty,
-                            onSelected: () => setState(() => _qty = s),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final s in product.selectableQty)
+                              AppChoiceChip(
+                                label: formatWeight(s),
+                                selected: !typedInvalid &&
+                                    _weightCtrl.text.isEmpty &&
+                                    s == qty,
+                                onSelected: () => setState(() {
+                                  _weightCtrl.clear();
+                                  _weightError = null;
+                                  _qty = s;
+                                }),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _weightCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(6),
+                          ],
+                          onChanged: (t) => _onWeightTyped(product, t),
+                          decoration: InputDecoration(
+                            labelText: 'Свой вес, г',
+                            hintText: 'Например, 700',
+                            helperText:
+                                'Кратно $kWeightStep г, минимум $kMinWeight г',
+                            errorText: _weightError,
+                            suffixText: 'г',
                           ),
+                        ),
                       ],
                     )
                   else
@@ -97,11 +175,16 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                         const Spacer(),
                         QtyStepper(
                           label: '$qty',
-                          onMinus:
-                              qty > 1 ? () => setState(() => _qty = qty - 1) : null,
-                          onPlus: qty < product.stock
-                              ? () => setState(() => _qty = qty + 1)
+                          onMinus: qty > 1
+                              ? () => setState(() => _qty = qty - 1)
                               : null,
+                          onPlus: () {
+                            if (qty >= product.stock) {
+                              showSnack(context, product.limitMessage);
+                              return;
+                            }
+                            setState(() => _qty = qty + 1);
+                          },
                         ),
                       ],
                     ),
@@ -171,15 +254,18 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: FilledButton(
-                      onPressed: product.inStock && qty > 0
+                      onPressed: product.canBuy && qty > 0
                           ? () {
                               final messenger = ScaffoldMessenger.of(context);
                               ref.read(cartProvider.notifier).add(product, qty);
                               Navigator.of(context).pop();
                               messenger
                                 ..hideCurrentSnackBar()
-                                ..showSnackBar(const SnackBar(
-                                    content: Text('Добавлено в корзину')));
+                                ..showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Добавлено в корзину'),
+                                  ),
+                                );
                             }
                           : null,
                       child: const Text('В корзину'),

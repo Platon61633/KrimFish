@@ -106,7 +106,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     _attemptKey ??=
         '${DateTime.now().microsecondsSinceEpoch}-${math.Random().nextInt(1 << 30)}';
     setState(() => _busy = true);
-    final order = await ref.read(ordersProvider.notifier).place(
+    final order = await ref
+        .read(ordersProvider.notifier)
+        .place(
           lines: lines,
           slot: slot,
           addressLine: address,
@@ -117,7 +119,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     setState(() => _busy = false);
     if (order == null) {
       // Ключ сохраняем только при обрыве связи: заказ мог создаться.
-      if (!ref.read(ordersProvider.notifier).lastErrorWasNetwork) _attemptKey = null;
+      if (!ref.read(ordersProvider.notifier).lastErrorWasNetwork) {
+        _attemptKey = null;
+      }
       _requote();
       return;
     }
@@ -129,7 +133,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       _quote = null;
       _promoCtl.clear();
     });
-    ref.read(clientTabProvider.notifier).set(3);
+    ref
+        .read(clientTabProvider.notifier)
+        .set(0); // заказ виден на главном экране
     showSnack(context, 'Заказ №${order.number} оформлен');
   }
 
@@ -142,7 +148,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
     // Адрес подставляем из последнего заказа, пока пользователь его не менял.
     final savedAddress = ref.watch(profileProvider).address;
-    if (!_addressTouched && _addressCtl.text.isEmpty && savedAddress.isNotEmpty) {
+    if (!_addressTouched &&
+        _addressCtl.text.isEmpty &&
+        savedAddress.isNotEmpty) {
       _addressCtl.text = savedAddress;
     }
 
@@ -202,11 +210,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 onMinus: () => ref
                                     .read(cartProvider.notifier)
                                     .change(l.product.id, -l.product.cartStep),
-                                onPlus: l.qty < l.product.stock
-                                    ? () => ref
-                                        .read(cartProvider.notifier)
-                                        .change(l.product.id, l.product.cartStep)
-                                    : null,
+                                onPlus: () {
+                                  if (l.qty + l.product.cartStep >
+                                      l.product.maxQty) {
+                                    showSnack(context, l.product.limitMessage);
+                                    return;
+                                  }
+                                  ref
+                                      .read(cartProvider.notifier)
+                                      .change(l.product.id, l.product.cartStep);
+                                },
                               ),
                             ],
                           ),

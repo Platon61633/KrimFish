@@ -44,8 +44,8 @@ class OrderTimeline extends StatelessWidget {
                     i < cur
                         ? Icons.check_circle
                         : i == cur
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
                     size: 22,
                     color: i <= cur ? AppColors.teal : AppColors.muted,
                   ),
