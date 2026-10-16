@@ -1,4 +1,4 @@
-package com.example.mobile
+package com.NotLp.KrimFish
 
 import io.flutter.embedding.android.FlutterActivity
 
