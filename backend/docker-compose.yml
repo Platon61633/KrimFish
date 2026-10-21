@@ -32,9 +32,18 @@ services:
       PORT: "3000"
       DATABASE_URL: postgres://${POSTGRES_USER:-krimfish}:${POSTGRES_PASSWORD:-krimfish}@db:5432/${POSTGRES_DB:-krimfish}
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
-      ADMIN_PHONES: ${ADMIN_PHONES:-}
-      SMS_MODE: ${SMS_MODE:-console}
-      SMS_FIXED_CODE: ${SMS_FIXED_CODE-123456}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      VK_CLIENT_ID: ${VK_CLIENT_ID:-}
+      VK_REDIRECT_URI: ${VK_REDIRECT_URI:-}
+      MAIL_MODE: ${MAIL_MODE:-console}
+      MAIL_FROM: ${MAIL_FROM:-KrimFish <noreply@krimfish.local>}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_SECURE: ${SMTP_SECURE:-ssl}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SEED_DEMO: ${SEED_DEMO:-true}
       APP_TZ: ${APP_TZ:-Europe/Moscow}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}

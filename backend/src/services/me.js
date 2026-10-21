@@ -3,15 +3,19 @@ import { HttpError } from '../lib/errors.js';
 
 export async function getMe(userId) {
   const { rows } = await query(
-    'SELECT id, phone, name, role, bonus FROM users WHERE id = $1 AND deleted_at IS NULL',
+    'SELECT id, email, phone, name, role, bonus FROM users WHERE id = $1 AND deleted_at IS NULL',
     [userId],
   );
   if (!rows[0]) throw new HttpError(404, 'Пользователь не найден');
   return rows[0];
 }
 
-export async function updateMe(userId, { name }) {
-  await query('UPDATE users SET name = $2 WHERE id = $1', [userId, name]);
+/** Меняет имя и/или телефон для связи (телефон не подтверждается и логином не служит). */
+export async function updateMe(userId, { name, phone }) {
+  await query(
+    'UPDATE users SET name = COALESCE($2, name), phone = COALESCE($3, phone) WHERE id = $1',
+    [userId, name ?? null, phone ?? null],
+  );
   return getMe(userId);
 }
 
@@ -20,7 +24,8 @@ export async function deleteMe(userId) {
   await tx(async (c) => {
     await c.query(
       `UPDATE users
-          SET deleted_at = now(), name = NULL, phone = 'deleted:' || id::text
+          SET deleted_at = now(), name = NULL, phone = 'deleted:' || id::text,
+              email = NULL, password_hash = NULL, google_sub = NULL, vk_id = NULL
         WHERE id = $1`,
       [userId],
     );

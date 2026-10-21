@@ -109,7 +109,9 @@ class ProfileScreen extends ConsumerWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      MutedText(profile.phone),
+                      MutedText(
+                        profile.phone.isNotEmpty ? profile.phone : profile.email,
+                      ),
                     ],
                   ),
                 ),

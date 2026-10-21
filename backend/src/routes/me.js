@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { asyncHandler } from '../lib/errors.js';
+import { HttpError, asyncHandler } from '../lib/errors.js';
+import { normalizePhone } from '../lib/phone.js';
 import { validate } from '../lib/validate.js';
 import { requireAuth } from '../middleware/auth.js';
 import {
@@ -27,9 +28,21 @@ router.get(
 
 router.patch(
   '/me',
-  validate({ body: z.object({ name: z.string().trim().min(1).max(80) }) }),
+  validate({
+    body: z
+      .object({
+        name: z.string().trim().min(1).max(80).optional(),
+        phone: z.string().trim().min(5).max(30).optional(),
+      })
+      .refine((b) => b.name !== undefined || b.phone !== undefined, {
+        message: 'Нет полей для изменения',
+      }),
+  }),
   asyncHandler(async (req, res) => {
-    res.json(await updateMe(req.user.id, req.valid.body));
+    const { name, phone } = req.valid.body;
+    const normalized = phone === undefined ? undefined : normalizePhone(phone);
+    if (phone !== undefined && !normalized) throw new HttpError(400, 'Неверный номер телефона');
+    res.json(await updateMe(req.user.id, { name, phone: normalized }));
   }),
 );
 

@@ -8,25 +8,73 @@ import '../core/config.dart';
 import 'models.dart';
 
 class ApiException implements Exception {
-  const ApiException(this.status, this.message);
+  const ApiException(this.status, this.message, {this.code});
   final int status;
   final String message;
+
+  /// Машинный код ошибки от сервера (например EMAIL_NOT_VERIFIED).
+  final String? code;
 
   @override
   String toString() => message;
 }
 
+/// Регистрация ждёт код из письма.
+class PendingEmail {
+  const PendingEmail({
+    required this.email,
+    required this.resendAfter,
+    this.devCode,
+  });
+  final String email;
+  final int resendAfter;
+
+  /// Код приходит в ответе только на dev-сервере без настоящей почты.
+  final String? devCode;
+
+  factory PendingEmail.fromJson(Map<String, dynamic> j) => PendingEmail(
+    email: j['email'] as String,
+    resendAfter: (j['resendAfter'] as num?)?.toInt() ?? 60,
+    devCode: j['devCode'] as String?,
+  );
+}
+
+/// Какие способы входа включены на сервере (кнопки Google и VK показываются, только если заданы ключи).
+class AuthProviders {
+  const AuthProviders({this.googleClientId, this.vkClientId, this.vkRedirectUri});
+  final String? googleClientId;
+  final String? vkClientId;
+  final String? vkRedirectUri;
+
+  static const none = AuthProviders();
+
+  bool get hasGoogle => googleClientId != null;
+  bool get hasVk => vkClientId != null && vkRedirectUri != null;
+
+  factory AuthProviders.fromJson(Map<String, dynamic> j) {
+    final g = j['google'] as Map<String, dynamic>?;
+    final v = j['vk'] as Map<String, dynamic>?;
+    return AuthProviders(
+      googleClientId: g?['clientId'] as String?,
+      vkClientId: v?['clientId'] as String?,
+      vkRedirectUri: v?['redirectUri'] as String?,
+    );
+  }
+}
+
 class AuthUser {
   const AuthUser({
     required this.id,
-    required this.phone,
+    this.email = '',
+    this.phone = '',
     required this.name,
     required this.role,
     this.bonus = 0,
   });
 
   final String id;
-  final String phone;
+  final String email;
+  final String phone; // может быть пустым: номер спрашиваем при заказе
   final String name;
   final String role; // CUSTOMER | ADMIN
   final int bonus;
@@ -35,7 +83,8 @@ class AuthUser {
 
   factory AuthUser.fromJson(Map<String, dynamic> j) => AuthUser(
     id: j['id'] as String,
-    phone: j['phone'] as String,
+    email: (j['email'] as String?) ?? '',
+    phone: (j['phone'] as String?) ?? '',
     name: (j['name'] as String?) ?? '',
     role: (j['role'] as String?) ?? 'CUSTOMER',
     bonus: (j['bonus'] as num?)?.toInt() ?? 0,
@@ -159,7 +208,14 @@ class ApiClient {
       final msg = json is Map && json['error'] is String
           ? json['error'] as String
           : 'Ошибка сервера (${res.statusCode})';
-      throw ApiException(res.statusCode, msg);
+      final details = json is Map ? json['details'] : null;
+      throw ApiException(
+        res.statusCode,
+        msg,
+        code: details is Map && details['code'] is String
+            ? details['code'] as String
+            : null,
+      );
     }
     return json;
   }
@@ -206,31 +262,65 @@ class ApiClient {
 
   // ------------------------------------------------------------- вход
 
-  /// Возвращает devCode, если сервер в режиме разработки.
-  Future<String?> requestCode(String phone) async {
-    final j =
-        await _request(
-              'POST',
-              '/auth/request-code',
-              body: {'phone': phone},
-              auth: false,
-            )
-            as Map<String, dynamic>;
-    return j['devCode'] as String?;
-  }
+  Future<AuthProviders> authProviders() async => AuthProviders.fromJson(
+    await _request('GET', '/auth/providers', auth: false)
+        as Map<String, dynamic>,
+  );
 
-  Future<AuthUser> verifyCode(String phone, String code) async {
-    final j =
-        await _request(
-              'POST',
-              '/auth/verify',
-              body: {'phone': phone, 'code': code},
-              auth: false,
-            )
-            as Map<String, dynamic>;
+  Future<AuthUser> _signIn(String path, Map<String, dynamic> body) async {
+    final j = await _request('POST', path, body: body, auth: false)
+        as Map<String, dynamic>;
     await _saveTokens(j);
     return AuthUser.fromJson(j['user'] as Map<String, dynamic>);
   }
+
+  Future<PendingEmail> register(String email, String password, String name) async =>
+      PendingEmail.fromJson(
+        await _request(
+              'POST',
+              '/auth/register',
+              body: {
+                'email': email,
+                'password': password,
+                if (name.isNotEmpty) 'name': name,
+              },
+              auth: false,
+            )
+            as Map<String, dynamic>,
+      );
+
+  Future<AuthUser> verifyEmail(String email, String code) =>
+      _signIn('/auth/verify-email', {'email': email, 'code': code});
+
+  Future<PendingEmail> resendCode(String email) async => PendingEmail.fromJson(
+    await _request(
+          'POST',
+          '/auth/resend-code',
+          body: {'email': email},
+          auth: false,
+        )
+        as Map<String, dynamic>,
+  );
+
+  Future<AuthUser> login(String email, String password) =>
+      _signIn('/auth/login', {'email': email, 'password': password});
+
+  Future<AuthUser> loginWithGoogle(String idToken) =>
+      _signIn('/auth/google', {'idToken': idToken});
+
+  Future<AuthUser> loginWithVk({
+    required String code,
+    required String codeVerifier,
+    required String deviceId,
+    required String state,
+    required String redirectUri,
+  }) => _signIn('/auth/vk', {
+    'code': code,
+    'codeVerifier': codeVerifier,
+    'deviceId': deviceId,
+    'state': state,
+    'redirectUri': redirectUri,
+  });
 
   Future<void> logout() async {
     final token = _prefs.getString(_kRefresh);
@@ -330,6 +420,7 @@ class ApiClient {
     required List<CartLine> lines,
     required DeliverySlot slot,
     required String addressLine,
+    required String phone,
     String? promoCode,
     required String idempotencyKey,
   }) async {
@@ -344,6 +435,7 @@ class ApiClient {
         'slotId': slot.id,
         'slotDate': slot.date,
         'address': {'line': addressLine},
+        'phone': phone,
         if (promoCode != null && promoCode.isNotEmpty) 'promoCode': promoCode,
       },
     );

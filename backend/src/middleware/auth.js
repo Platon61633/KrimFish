@@ -9,7 +9,7 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
 
   const payload = verifyAccessToken(match[1]);
   const { rows } = await query(
-    'SELECT id, phone, name, role FROM users WHERE id = $1 AND deleted_at IS NULL',
+    'SELECT id, email, phone, name, role FROM users WHERE id = $1 AND deleted_at IS NULL',
     [payload.sub],
   );
   if (!rows[0]) throw new HttpError(401, 'Пользователь не найден');

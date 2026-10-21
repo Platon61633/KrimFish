@@ -27,6 +27,8 @@ const createOrderBody = z
       })
       .optional(),
     comment: z.string().trim().max(500).optional(),
+    // Телефон для связи с курьером; обязателен, если его ещё нет в профиле.
+    phone: z.string().trim().min(5).max(30).optional(),
   })
   .refine((b) => b.addressId || b.address, {
     message: 'Укажите адрес доставки',

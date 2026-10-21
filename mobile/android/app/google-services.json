@@ -12,7 +12,20 @@
           "package_name": "com.NotLp.KrimFish"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "583575785297-9t40rcarg1oqmpa44g8898hhic5kav2h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.NotLp.KrimFish",
+            "certificate_hash": "d24c6200a8e7cba574e605305fd86ee6883c8ac9"
+          }
+        },
+        {
+          "client_id": "583575785297-q8ptkfcetdqqq66an56ragv4tjb94dv7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBIyz8WzuajW1Sax-C12cmD0Vx8Z3ock4g"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "583575785297-q8ptkfcetdqqq66an56ragv4tjb94dv7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

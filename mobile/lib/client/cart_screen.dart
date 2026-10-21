@@ -27,7 +27,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   String? _attemptKey; // защита от дубля заказа при повторной отправке
   final _promoCtl = TextEditingController();
   final _addressCtl = TextEditingController();
+  final _phoneCtl = TextEditingController();
   bool _addressTouched = false;
+  bool _phoneTouched = false;
 
   @override
   void initState() {
@@ -44,6 +46,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   void dispose() {
     _promoCtl.dispose();
     _addressCtl.dispose();
+    _phoneCtl.dispose();
     super.dispose();
   }
 
@@ -102,6 +105,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       showSnack(context, 'Укажите адрес доставки');
       return;
     }
+    final phone = _phoneCtl.text.trim();
+    if (phone.replaceAll(RegExp(r'\D'), '').length < 10) {
+      showSnack(context, 'Укажите номер телефона для связи с курьером');
+      return;
+    }
     final slot = slots[_slot < slots.length ? _slot : 0];
     _attemptKey ??=
         '${DateTime.now().microsecondsSinceEpoch}-${math.Random().nextInt(1 << 30)}';
@@ -112,6 +120,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           lines: lines,
           slot: slot,
           addressLine: address,
+          phone: phone,
           promoCode: _promo,
           idempotencyKey: _attemptKey!,
         );
@@ -127,6 +136,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
     _attemptKey = null;
     ref.read(cartProvider.notifier).clear();
+    ref.read(authProvider.notifier).refreshUser(); // номер сохранён в профиле
     setState(() {
       _promo = null;
       _promoError = null;
@@ -152,6 +162,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         _addressCtl.text.isEmpty &&
         savedAddress.isNotEmpty) {
       _addressCtl.text = savedAddress;
+    }
+    // Телефон подставляем из профиля, пока пользователь его не менял.
+    final savedPhone = ref.watch(profileProvider).phone;
+    if (!_phoneTouched && _phoneCtl.text.isEmpty && savedPhone.isNotEmpty) {
+      _phoneCtl.text = savedPhone;
     }
 
     final itemsKop = lines.fold<int>(0, (s, l) => s + l.lineKop);
@@ -246,6 +261,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 ),
                               ),
                           ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _phoneCtl,
+                        keyboardType: TextInputType.phone,
+                        autofillHints: const [AutofillHints.telephoneNumber],
+                        onChanged: (_) => _phoneTouched = true,
+                        decoration: const InputDecoration(
+                          labelText: 'Телефон для связи',
+                          hintText: '+7 900 000-00-00',
+                          helperText: 'Курьер позвонит, если понадобится',
                         ),
                       ),
                       const SizedBox(height: 16),

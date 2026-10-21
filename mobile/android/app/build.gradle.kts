@@ -29,6 +29,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Схема возврата из окна входа VK: vk<ID приложения>://. ID задаётся в android/gradle.properties.
+        manifestPlaceholders["vkClientId"] = (project.findProperty("VK_CLIENT_ID") as String?) ?: "0"
     }
 
     buildTypes {

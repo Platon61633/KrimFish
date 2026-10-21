@@ -2,41 +2,126 @@ import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { HttpError, asyncHandler } from '../lib/errors.js';
-import { normalizePhone } from '../lib/phone.js';
+import { normalizeEmail } from '../lib/email.js';
+import { passwordProblem } from '../lib/password.js';
 import { validate } from '../lib/validate.js';
-import { logout, refreshSession, requestCode, verifyCode } from '../services/auth.js';
+import {
+  authProviders,
+  loginWithGoogle,
+  loginWithPassword,
+  loginWithVk,
+  logout,
+  refreshSession,
+  register,
+  resendCode,
+  verifyEmail,
+} from '../services/auth.js';
 
 const router = Router();
 
-// Защита от перебора кодов и спама СМС.
-const limiter = rateLimit({
-  windowMs: 60_000,
-  limit: 20,
+const message = (error) => ({ error });
+const common = {
   standardHeaders: 'draft-7',
   legacyHeaders: false,
-  message: { error: 'Слишком много запросов, подождите минуту' },
-});
-router.use(limiter);
+};
 
-const phoneSchema = z.string().min(5).max(30);
+// Общий лимит и отдельный, более строгий — на вход и регистрацию (защита от перебора паролей).
+router.use(
+  rateLimit({ ...common, windowMs: 60_000, limit: 60, message: message('Слишком много запросов, подождите минуту') }),
+);
+const credentialsLimiter = rateLimit({
+  ...common,
+  windowMs: 60_000,
+  limit: 10,
+  message: message('Слишком много попыток входа, подождите минуту'),
+});
+
+const emailField = z.string().max(254).transform((v, ctx) => {
+  const email = normalizeEmail(v);
+  if (!email) ctx.addIssue({ code: 'custom', message: 'Неверный email' });
+  return email;
+});
+
+const passwordField = z.string().max(128).superRefine((v, ctx) => {
+  const problem = passwordProblem(v);
+  if (problem) ctx.addIssue({ code: 'custom', message: problem });
+});
+
+router.get('/providers', (_req, res) => {
+  res.json(authProviders());
+});
 
 router.post(
-  '/request-code',
-  validate({ body: z.object({ phone: phoneSchema }) }),
+  '/register',
+  credentialsLimiter,
+  validate({
+    body: z.object({
+      email: emailField,
+      password: passwordField,
+      name: z.string().trim().min(1).max(80).optional(),
+    }),
+  }),
   asyncHandler(async (req, res) => {
-    const phone = normalizePhone(req.valid.body.phone);
-    if (!phone) throw new HttpError(400, 'Неверный номер телефона');
-    res.json(await requestCode(phone));
+    res.status(202).json(await register(req.valid.body));
   }),
 );
 
 router.post(
-  '/verify',
-  validate({ body: z.object({ phone: phoneSchema, code: z.string().regex(/^\d{6}$/, 'Код — 6 цифр') }) }),
+  '/verify-email',
+  credentialsLimiter,
+  validate({ body: z.object({ email: emailField, code: z.string().regex(/^\d{6}$/, 'Код — 6 цифр') }) }),
   asyncHandler(async (req, res) => {
-    const phone = normalizePhone(req.valid.body.phone);
-    if (!phone) throw new HttpError(400, 'Неверный номер телефона');
-    res.json(await verifyCode(phone, req.valid.body.code));
+    res.json(await verifyEmail(req.valid.body));
+  }),
+);
+
+router.post(
+  '/resend-code',
+  credentialsLimiter,
+  validate({ body: z.object({ email: emailField }) }),
+  asyncHandler(async (req, res) => {
+    res.json(await resendCode(req.valid.body));
+  }),
+);
+
+router.post(
+  '/login',
+  credentialsLimiter,
+  validate({
+    body: z.object({
+      email: emailField,
+      // Для входа длину не проверяем: у старых аккаунтов правила могли быть другими.
+      password: z.string().min(1).max(128),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    res.json(await loginWithPassword(req.valid.body));
+  }),
+);
+
+router.post(
+  '/google',
+  credentialsLimiter,
+  validate({ body: z.object({ idToken: z.string().min(20).max(4096) }) }),
+  asyncHandler(async (req, res) => {
+    res.json(await loginWithGoogle(req.valid.body.idToken));
+  }),
+);
+
+router.post(
+  '/vk',
+  credentialsLimiter,
+  validate({
+    body: z.object({
+      code: z.string().min(1).max(2000),
+      codeVerifier: z.string().min(43).max(128),
+      deviceId: z.string().min(1).max(200),
+      redirectUri: z.string().min(1).max(300),
+      state: z.string().min(1).max(200),
+    }),
+  }),
+  asyncHandler(async (req, res) => {
+    res.json(await loginWithVk(req.valid.body));
   }),
 );
 

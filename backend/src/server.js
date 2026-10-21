@@ -2,11 +2,13 @@ import { createApp } from './app.js';
 import { config } from './config.js';
 import { fcm } from './services/notify.js';
 import { closeDb, migrate, seedDemoIfEmpty, waitForDb } from './db.js';
+import { ensureAdmins } from './services/auth.js';
 
 async function main() {
   await waitForDb();
   await migrate();
   if (config.seedDemo) await seedDemoIfEmpty();
+  const admins = await ensureAdmins();
 
   const app = createApp();
   const server = app.listen(config.port, () => {
@@ -16,9 +18,14 @@ async function main() {
         ? 'Push-уведомления включены (Firebase)'
         : `Push-уведомления выключены: нет ключа Firebase (${config.firebaseCredentialsFile})`,
     );
-    if (config.adminPhones.length === 0) {
-      console.log('ADMIN_PHONES не задан: ни один пользователь не получит роль администратора');
+    if (config.adminEmails.length === 0) {
+      console.log('ADMIN_EMAILS не задан: ни один пользователь не получит роль администратора');
+    } else if (!config.adminPassword) {
+      console.log('ADMIN_PASSWORD не задан: администратор сможет войти только через Google');
+    } else {
+      console.log(`Администраторы по паролю: ${admins}`);
     }
+    console.log(`Вход: пароль, Google ${config.googleClientIds.length ? 'вкл' : 'выкл'}, VK ${config.vk.clientId ? 'вкл' : 'выкл'}`);
   });
 
   let stopping = false;

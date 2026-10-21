@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../core/messenger.dart';
 import '../data/api.dart';
 import '../data/firebase_setup.dart';
+import '../data/social_auth.dart';
 import '../data/models.dart';
 
 // ---------------------------------------------------------------- сервер
@@ -60,16 +61,37 @@ class AuthNotifier extends Notifier<AuthState> {
     } catch (_) {}
   }
 
-  /// Шаг 1: отправить код. В режиме разработки сервер возвращает код в ответе.
-  Future<String?> requestCode(String phone) =>
-      ref.read(apiProvider).requestCode(phone);
-
-  Future<void> verify(String phone, String code) async {
-    final user = await ref.read(apiProvider).verifyCode(phone, code);
+  void _signedIn(AuthUser user) {
     ref.read(clientTabProvider.notifier).set(0);
     ref.read(adminTabProvider.notifier).set(0);
     state = AuthState(user: user);
   }
+
+  Future<PendingEmail> register(String email, String password, String name) =>
+      ref.read(apiProvider).register(email, password, name);
+
+  Future<void> verifyEmail(String email, String code) async =>
+      _signedIn(await ref.read(apiProvider).verifyEmail(email, code));
+
+  Future<PendingEmail> resendCode(String email) =>
+      ref.read(apiProvider).resendCode(email);
+
+  Future<void> loginWithPassword(String email, String password) async =>
+      _signedIn(await ref.read(apiProvider).login(email, password));
+
+  Future<void> loginWithGoogle(String idToken) async =>
+      _signedIn(await ref.read(apiProvider).loginWithGoogle(idToken));
+
+  Future<void> loginWithVk(VkAuthResult r) async =>
+      _signedIn(
+        await ref.read(apiProvider).loginWithVk(
+              code: r.code,
+              codeVerifier: r.codeVerifier,
+              deviceId: r.deviceId,
+              state: r.state,
+              redirectUri: r.redirectUri,
+            ),
+      );
 
   Future<void> updateName(String name) async {
     try {
@@ -82,6 +104,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     await forgetPushToken();
     await ref.read(apiProvider).logout();
+    await socialSignOut();
     ref.read(cartProvider.notifier).clear();
     ref.read(nameSkipProvider.notifier).reset();
     state = const AuthState();
@@ -103,6 +126,17 @@ final nameSkipProvider = NotifierProvider<NameSkipNotifier, bool>(
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(
   AuthNotifier.new,
 );
+
+/// Способы входа, включённые на сервере. При ошибке сети остаются только email и пароль.
+final authProvidersProvider = FutureProvider.autoDispose<AuthProviders>((
+  ref,
+) async {
+  try {
+    return await ref.read(apiProvider).authProviders();
+  } catch (_) {
+    return AuthProviders.none;
+  }
+});
 
 /// Меняется только при входе/выходе — по нему данные перезагружаются.
 final sessionUserProvider = Provider<String?>(
@@ -307,6 +341,7 @@ class OrdersNotifier extends Notifier<List<Order>> {
     required List<CartLine> lines,
     required DeliverySlot slot,
     required String addressLine,
+    required String phone,
     required String idempotencyKey,
     String? promoCode,
   }) async {
@@ -317,6 +352,7 @@ class OrdersNotifier extends Notifier<List<Order>> {
             lines: lines,
             slot: slot,
             addressLine: addressLine,
+            phone: phone,
             promoCode: promoCode,
             idempotencyKey: idempotencyKey,
           );
@@ -400,6 +436,7 @@ final profileProvider = Provider<UserProfile>((ref) {
   return UserProfile(
     name: user?.name ?? '',
     phone: user?.phone ?? '',
+    email: user?.email ?? '',
     // Свой адрес, а если не задан — из последнего заказа.
     address: ref.watch(addressProvider) ??
         (orders.isEmpty ? '' : orders.first.addressLine),

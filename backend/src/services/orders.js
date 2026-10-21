@@ -3,6 +3,7 @@ import { config } from '../config.js';
 import { HttpError } from '../lib/errors.js';
 import { discountFor, formatRub, lineTotal } from '../lib/money.js';
 import { canTransition } from '../lib/status.js';
+import { normalizePhone } from '../lib/phone.js';
 import { nowInTz } from '../lib/time.js';
 import { isValidWeight } from '../lib/weight.js';
 import { loadSlot } from './slots.js';
@@ -218,6 +219,16 @@ export async function placeOrder(user, input, idempotencyKey) {
       const q = await computeQuote(c, input, { lock: true });
       if (!q.slot) throw new HttpError(400, 'Выберите время доставки');
 
+      // Телефон для курьера: из запроса, иначе из профиля. Входит клиент без номера, поэтому спрашиваем.
+      const given = input.phone === undefined ? null : normalizePhone(input.phone);
+      if (input.phone !== undefined && !given) throw new HttpError(400, 'Неверный номер телефона');
+      const stored = user.phone && !user.phone.startsWith('deleted:') ? user.phone : null;
+      const phone = given ?? stored;
+      if (!phone) throw new HttpError(400, 'Укажите номер телефона для связи с курьером');
+      if (given && given !== stored) {
+        await c.query('UPDATE users SET phone = $2 WHERE id = $1', [user.id, given]);
+      }
+
       let addressLine;
       let addressNote = null;
       if (input.addressId) {
@@ -260,7 +271,7 @@ export async function placeOrder(user, input, idempotencyKey) {
           q.slot.fromHour,
           q.slot.toHour,
           user.name || 'Клиент',
-          user.phone,
+          phone,
           addressLine,
           addressNote,
           q.itemsKop,

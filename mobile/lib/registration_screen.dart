@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'state/providers.dart';
 import 'widgets/common.dart';
 
-/// Шаг регистрации: новый клиент называет имя (телефон уже подтверждён кодом).
+/// Шаг после входа: новый клиент (например, через VK без имени) называет имя.
 class RegistrationScreen extends ConsumerStatefulWidget {
   const RegistrationScreen({super.key});
 
@@ -33,7 +33,6 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phone = ref.watch(authProvider).user?.phone ?? '';
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -52,7 +51,9 @@ class _RegistrationScreenState extends ConsumerState<RegistrationScreen> {
                     style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 8),
-                  Center(child: MutedText('Номер $phone подтверждён')),
+                  const Center(
+                    child: MutedText('Так курьер будет к вам обращаться'),
+                  ),
                   const SizedBox(height: 28),
                   TextField(
                     controller: _name,
