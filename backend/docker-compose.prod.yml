@@ -1,0 +1,30 @@
+# Боевой запуск: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Наружу открыты только 80 и 443 (Caddy). База, API и хранилище доступны лишь внутри Docker.
+# Требуется Docker Compose 2.24+ (ставится вместе с Docker по инструкции get.docker.com).
+services:
+  db:
+    ports: !reset []
+  api:
+    ports: !reset []
+  minio:
+    ports: !reset []
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+      - minio
+    environment:
+      DOMAIN: ${DOMAIN:?задайте DOMAIN в .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

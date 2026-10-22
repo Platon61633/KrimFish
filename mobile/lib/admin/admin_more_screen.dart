@@ -14,6 +14,13 @@ class AdminMoreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orders = ref.watch(ordersProvider);
+    final user = ref.watch(authProvider).user;
+    final rawName = user?.name.trim() ?? '';
+    // Пока имя не задано (или стоит служебное «Администратор»), показываем имя по умолчанию.
+    final adminName = rawName.isEmpty || rawName == 'Администратор'
+        ? 'Админ'
+        : rawName;
+    final adminEmail = user?.email ?? '';
     final now = DateTime.now();
     final today = orders.where(
       (o) =>
@@ -66,42 +73,32 @@ class AdminMoreScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Row(children: [stat('Выручка за день', formatKop(revenue))]),
             const SizedBox(height: 16),
-            MenuCard(
-              children: [
-                ListTile(
-                  title: const Text(
-                    'Промокоды',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+            AppCard(
+              child: Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.teal,
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.muted,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          adminName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                        if (adminEmail.isNotEmpty) MutedText(adminEmail),
+                      ],
+                    ),
                   ),
-                  onTap: () => showSnack(context, 'Этот раздел появится позже'),
-                ),
-                ListTile(
-                  title: const Text(
-                    'Слоты доставки',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.muted,
-                  ),
-                  onTap: () => showSnack(context, 'Этот раздел появится позже'),
-                ),
-                ListTile(
-                  title: const Text(
-                    'Аналитика',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  trailing: const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.muted,
-                  ),
-                  onTap: () => showSnack(context, 'Этот раздел появится позже'),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             Align(

@@ -6,6 +6,7 @@ import '../state/providers.dart';
 import '../widgets/common.dart';
 import '../widgets/refresh.dart';
 import 'orders_screen.dart';
+import 'profile_sections.dart';
 
 Future<void> _editName(
   BuildContext context,
@@ -81,6 +82,9 @@ class ProfileScreen extends ConsumerWidget {
     );
 
     void soon() => showSnack(context, 'Этот раздел появится позже');
+    void openScreen(Widget screen) => Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => screen));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Профиль')),
@@ -168,14 +172,17 @@ class ProfileScreen extends ConsumerWidget {
                   'Изменить имя',
                   () => _editName(context, ref, profile.name),
                 ),
-                row('Адреса доставки', soon),
+                row('Адреса доставки', () => openScreen(const AddressesScreen())),
                 row('Способы оплаты', soon),
-                row('Уведомления', soon),
+                row('Уведомления', () => openScreen(const NotificationsScreen())),
               ],
             ),
             const SizedBox(height: 16),
             MenuCard(
-              children: [row('Поддержка', soon), row('О сервисе', soon)],
+              children: [
+                row('Поддержка', () => openScreen(const SupportScreen())),
+                row('О сервисе', () => openScreen(const AboutScreen())),
+              ],
             ),
             const SizedBox(height: 16),
             Align(

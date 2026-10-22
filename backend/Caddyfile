@@ -1,0 +1,9 @@
+# Сертификаты Let's Encrypt Caddy получает и обновляет сам.
+# Нужны две DNS-записи типа A на IP сервера: api.<домен> и files.<домен>.
+api.{$DOMAIN} {
+	reverse_proxy api:3000
+}
+
+files.{$DOMAIN} {
+	reverse_proxy minio:9000
+}

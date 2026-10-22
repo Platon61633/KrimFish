@@ -34,11 +34,12 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-secret-change-me}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Админ}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       VK_CLIENT_ID: ${VK_CLIENT_ID:-}
       VK_REDIRECT_URI: ${VK_REDIRECT_URI:-}
       MAIL_MODE: ${MAIL_MODE:-console}
-      MAIL_FROM: ${MAIL_FROM:-KrimFish <noreply@krimfish.local>}
+      MAIL_FROM: ${MAIL_FROM:-Карасик <noreply@krimfish.local>}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
       SMTP_SECURE: ${SMTP_SECURE:-ssl}

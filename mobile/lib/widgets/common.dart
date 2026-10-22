@@ -326,7 +326,7 @@ void showSnack(BuildContext context, String text) {
     ..showSnackBar(SnackBar(content: Text(text)));
 }
 
-/// Логотип KrimFish (lib/assets/logo.svg).
+/// Логотип Карасика (lib/assets/logo.svg).
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.size = 96});
   final double size;
@@ -337,7 +337,7 @@ class AppLogo extends StatelessWidget {
       'lib/assets/logo.svg',
       width: size,
       height: size,
-      semanticsLabel: 'KrimFish',
+      semanticsLabel: 'Карасик',
     );
   }
 }

@@ -80,10 +80,10 @@ async function issueEmailCode({ email, passwordHash, name }) {
   try {
     await sendMail({
       to: email,
-      subject: `KrimFish: код подтверждения ${code}`,
+      subject: `Карасик: код подтверждения ${code}`,
       text:
         `Ваш код подтверждения: ${code}\n\n` +
-        `Он действует ${CODE_TTL_MIN} минут. Если вы не регистрировались в KrimFish, просто проигнорируйте это письмо.`,
+        `Он действует ${CODE_TTL_MIN} минут. Если вы не регистрировались в «Карасике», просто проигнорируйте это письмо.`,
     });
   } catch (err) {
     await query('DELETE FROM email_codes WHERE id = $1', [id]);
@@ -312,17 +312,21 @@ export async function ensureAdmins() {
     const current = rows[0];
     const same = current?.hash && (await verifyPassword(config.adminPassword, current.hash));
     if (same) {
-      await query("UPDATE users SET role = 'ADMIN', email_verified = true WHERE id = $1", [current.id]);
+      await query("UPDATE users SET role = 'ADMIN', email_verified = true, name = $2 WHERE id = $1", [
+        current.id,
+        config.adminName,
+      ]);
       continue;
     }
     const hash = await hashPassword(config.adminPassword);
     await query(
       `INSERT INTO users (email, email_verified, password_hash, name, role)
-       VALUES ($1, true, $2, 'Администратор', 'ADMIN')
+       VALUES ($1, true, $2, $3, 'ADMIN')
        ON CONFLICT (email) DO UPDATE
          SET role = 'ADMIN', email_verified = true, password_hash = EXCLUDED.password_hash,
+             name = EXCLUDED.name,
              failed_logins = 0, locked_until = NULL, deleted_at = NULL`,
-      [email, hash],
+      [email, hash, config.adminName],
     );
   }
   return config.adminEmails.length;

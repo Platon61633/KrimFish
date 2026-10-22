@@ -430,6 +430,29 @@ class AddressNotifier extends Notifier<String?> {
 final addressProvider =
     NotifierProvider<AddressNotifier, String?>(AddressNotifier.new);
 
+/// Включены ли push-уведомления о заказах (настройка хранится на устройстве).
+class NotificationsNotifier extends Notifier<bool> {
+  String get _key => 'notifications:${ref.read(sessionUserProvider)}';
+
+  @override
+  bool build() {
+    final user = ref.watch(sessionUserProvider);
+    if (user == null) return true;
+    return ref.read(prefsProvider).getBool('notifications:$user') ?? true;
+  }
+
+  Future<void> set(bool enabled) async {
+    state = enabled;
+    await ref.read(prefsProvider).setBool(_key, enabled);
+    // Выключили: забываем токен, чтобы сервер перестал слать на это устройство.
+    // Включили: PushNotifier увидит изменение и зарегистрирует устройство заново.
+    if (!enabled) await forgetPushToken();
+  }
+}
+
+final notificationsProvider =
+    NotifierProvider<NotificationsNotifier, bool>(NotificationsNotifier.new);
+
 final profileProvider = Provider<UserProfile>((ref) {
   final user = ref.watch(authProvider.select((a) => a.user));
   final orders = ref.watch(myOrdersProvider);

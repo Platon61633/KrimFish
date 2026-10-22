@@ -14,6 +14,7 @@ class PushNotifier extends Notifier<void> {
   @override
   void build() {
     if (ref.watch(sessionUserProvider) == null || !firebaseReady) return;
+    if (!ref.watch(notificationsProvider)) return;
 
     final messaging = FirebaseMessaging.instance;
     final subs = <StreamSubscription<Object?>>[

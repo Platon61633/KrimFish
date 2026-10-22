@@ -30,6 +30,8 @@ export const config = {
     .map((s) => normalizeEmail(s))
     .filter(Boolean),
   adminPassword: env.ADMIN_PASSWORD ?? '',
+  // Имя администраторов из ADMIN_EMAILS; при каждом запуске сервера записывается в их аккаунты.
+  adminName: (env.ADMIN_NAME ?? '').trim() || 'Админ',
 
   // Вход через Google: Web client ID из Google Cloud (можно несколько через запятую).
   googleClientIds: (env.GOOGLE_CLIENT_ID ?? '')
@@ -46,7 +48,7 @@ export const config = {
   // возвращается в ответе как devCode. smtp: настоящая отправка через SMTP_*.
   mail: {
     mode: env.MAIL_MODE ?? 'console',
-    from: env.MAIL_FROM ?? 'KrimFish <noreply@krimfish.local>',
+    from: env.MAIL_FROM ?? 'Карасик <noreply@krimfish.local>',
     smtp: {
       host: env.SMTP_HOST ?? '',
       secure: env.SMTP_SECURE ?? 'ssl', // ssl (465) | starttls (587) | none (только локальная проверка)

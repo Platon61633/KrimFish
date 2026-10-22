@@ -17,26 +17,35 @@ class AdminOrdersScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
-  /// null — показать все заказы.
-  static const List<OrderStatus?> _filters = [
-    null,
-    OrderStatus.newOrder,
-    OrderStatus.preparing,
-    OrderStatus.onTheWay,
-    OrderStatus.delivered,
+  /// Вкладки: «Все», «Активные» (новые, собираются, в пути) и по одному статусу.
+  static const _names = [
+    'Все',
+    'Активные',
+    'Новые',
+    'Собираются',
+    'В пути',
+    'Доставлены',
   ];
-  static const _names = ['Все', 'Новые', 'Собираются', 'В пути', 'Доставлены'];
+
+  static bool _matches(int tab, OrderStatus s) => switch (tab) {
+    0 => true,
+    1 =>
+      s == OrderStatus.newOrder ||
+          s == OrderStatus.preparing ||
+          s == OrderStatus.onTheWay,
+    2 => s == OrderStatus.newOrder,
+    3 => s == OrderStatus.preparing,
+    4 => s == OrderStatus.onTheWay,
+    _ => s == OrderStatus.delivered,
+  };
 
   int _f = 0; // открываем на «Все»
 
   @override
   Widget build(BuildContext context) {
     final orders = ref.watch(ordersProvider);
-    int count(OrderStatus? s) =>
-        s == null ? orders.length : orders.where((o) => o.status == s).length;
-    final shown = _filters[_f] == null
-        ? orders
-        : orders.where((o) => o.status == _filters[_f]).toList();
+    int count(int tab) => orders.where((o) => _matches(tab, o.status)).length;
+    final shown = orders.where((o) => _matches(_f, o.status)).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Заказы')),
@@ -44,8 +53,8 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen> {
         children: [
           ChipsRow(
             labels: [
-              for (var i = 0; i < _filters.length; i++)
-                '${_names[i]} (${count(_filters[i])})',
+              for (var i = 0; i < _names.length; i++)
+                '${_names[i]} (${count(i)})',
             ],
             selected: _f,
             onSelected: (i) => setState(() => _f = i),

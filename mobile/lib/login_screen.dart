@@ -136,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       const Center(child: AppLogo(size: 96)),
                       const SizedBox(height: 16),
                       const Text(
-                        'KrimFish',
+                        'Карасик',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 34,

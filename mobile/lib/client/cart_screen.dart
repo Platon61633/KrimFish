@@ -149,6 +149,27 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     showSnack(context, 'Заказ №${order.number} оформлен');
   }
 
+  Future<void> _confirmClear() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Очистить корзину?'),
+        content: const Text('Все товары будут удалены из корзины.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Очистить'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) ref.read(cartProvider.notifier).clear();
+  }
+
   @override
   Widget build(BuildContext context) {
     final lines = ref.watch(cartProvider);
@@ -195,6 +216,17 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                     children: [
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton.icon(
+                          onPressed: _busy ? null : _confirmClear,
+                          icon: const Icon(Icons.delete_outline, size: 20),
+                          label: const Text('Очистить корзину'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.danger,
+                          ),
+                        ),
+                      ),
                       for (final l in lines) ...[
                         AppCard(
                           padding: const EdgeInsets.all(12),
